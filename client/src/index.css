@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* LeetCode-inspired Blue/Yellow Theme */
+    --bg-primary:      #1a1a1a;
+    --bg-secondary:    #0a0a0a;
+    --bg-tertiary:     #2d2d2d;
+    --bg-layer-1:      #1e1e1e;
+    --bg-layer-2:      #141414;
+    --bg-fill-3:       #2a2a2a;
+    --bg-hover:        #262626;
+    
+    --border-primary:  #3a3a3a;
+    --border-secondary:#2d2d2d;
+    --border-tertiary: #484848;
+    
+    --text-primary:    #eff1f6bf;
+    --text-secondary:  #a6acb8;
+    --text-tertiary:   #7b7f86;
+    --text-disabled:   #5c5f65;
+    
+    --label-1:         #ffffff;
+    --label-2:         #eff1f6bf;
+    --label-3:         #b4b7be;
+    --label-4:         #7b7f86;
+    
+    --fill-1:          #ffffff;
+    --fill-2:          #eff1f6bf;
+    --fill-3:          #b4b7be;
+    
+    /* Blue/Yellow Brand Colors */
+    --brand-blue:      #2cbb5d;
+    --brand-blue-dark: #1e8449;
+    --brand-yellow:    #ffa116;
+    --brand-yellow-dark: #ff8c00;
+    
+    /* Accent Colors */
+    --accent-blue:     #3b82f6;
+    --accent-blue-light: #60a5fa;
+    --accent-yellow:   #fbbf24;
+    --accent-yellow-light: #fcd34d;
+    
+    /* Difficulty Colors */
+    --easy:            #00b8a3;
+    --medium:          #ffc01e;
+    --hard:            #ff375f;
+    
+    /* Status Colors */
+    --success:         #2cbb5d;
+    --error:           #ff375f;
+    --warn:            #ffc01e;
+    --info:            #3b82f6;
+    
+    /* Other */
+    --blue:            #3b82f6;
+    --yellow:          #fbbf24;
+    --divider-1:       #3a3a3a;
+    --divider-2:       #2d2d2d;
+    
+    /* Gradients */
+    --gradient-blue:   linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-yellow: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #fbbf24 100%);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--label-2);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-fill-3); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-tertiary); }
+
+  /* Selection */
+  ::selection { background: rgba(255,161,22,0.2); color: var(--label-1); }
+
+  /* Focus ring */
+  :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+  .animate-fade-in { animation: fadeIn 0.2s ease both; }
+  .animate-spin { animation: spin 1s linear infinite; }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg, var(--bg-layer-1) 25%, var(--bg-tertiary) 50%, var(--bg-layer-1) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    borderRadius: 8px;
+  }
+
+  /* Heatmap overrides */
+  .react-calendar-heatmap .color-empty { fill: var(--bg-tertiary); }
+  .react-calendar-heatmap .color-scale-1 { fill: rgba(59,130,246,0.3); }
+  .react-calendar-heatmap .color-scale-2 { fill: rgba(59,130,246,0.5); }
+  .react-calendar-heatmap .color-scale-3 { fill: rgba(59,130,246,0.7); }
+  .react-calendar-heatmap .color-scale-4 { fill: var(--accent-blue); }
+  .react-calendar-heatmap text { fill: var(--label-4); font-size: 10px; }
+  .react-calendar-heatmap rect { rx: 2; ry: 2; }
+}
