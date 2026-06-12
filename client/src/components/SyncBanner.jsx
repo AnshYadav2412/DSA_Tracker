@@ -11,7 +11,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, CheckCircle2, X, Info, RotateCcw } from 'lucide-react';
-import { getWarnings, syncApi, settingsApi } from '../api/index.js';
+import { getWarnings, syncApi, settingsApi, rescanSheetProgress } from '../api/index.js';
 
 export default function SyncBanner() {
   const [warnings, setWarnings]       = useState(() => getWarnings());
@@ -48,6 +48,9 @@ export default function SyncBanner() {
 
   // Auto-run on mount if username is known
   useEffect(() => {
+    // Immediately backfill any GFG problems whose lcAlt slug is already solved
+    rescanSheetProgress();
+
     refreshWarnings();
     settingsApi.get().then((s) => {
       const u = s.leetcodeUsername;
@@ -156,6 +159,30 @@ export default function SyncBanner() {
           </span>
         </Banner>
       )}
+
+      {/* ── 6. Persisted mayBeMissing warning (survives reload) ─────────────── */}
+      {(() => {
+        const w = visibleWarnings.find((ww) => ww.type === 'may_be_missing');
+        // Don't double-show if the in-session banner (3b) is already visible
+        const sessionBannerVisible =
+          fetchState === 'done' && fetchResult?.status === 'updated' && fetchResult?.mayBeMissing && !dismissed['mayBeMissing'];
+        if (!w || sessionBannerVisible) return null;
+        return (
+          <Banner color="#f59e0b" bg="rgba(245,158,11,0.08)" border="rgba(245,158,11,0.3)"
+            onDismiss={() => dismiss('may_be_missing')}>
+            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+            <span>
+              ⚠️ Your last sync detected <strong>{w.gap}</strong> new solves but could only
+              capture <strong>{w.added}</strong> — about <strong>{w.missingCount}</strong> problems
+              are still missing (GraphQL only returns the last 20).{' '}
+              <Link to="/import" style={{ color: '#f59e0b', fontWeight: 600 }}>
+                Re-import the full list →
+              </Link>{' '}
+              to fix this.
+            </span>
+          </Banner>
+        );
+      })()}
     </div>
   );
 }

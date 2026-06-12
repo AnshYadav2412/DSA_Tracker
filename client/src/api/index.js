@@ -35,10 +35,50 @@ const saveSolvedSlugs = (slugs) => localStorage.setItem('dsa_lc_solved_slugs', J
 const getLastRecentFetch = () => JSON.parse(localStorage.getItem('dsa_last_recent_fetch') || 'null');
 const saveLastRecentFetch = (info) => localStorage.setItem('dsa_last_recent_fetch', JSON.stringify(info));
 
+// ─── Re-scan existing solved slugs against sheet data (including lcAlt) ───────
+/**
+ * Re-checks all stored solved slugs against every sheet problem.
+ * Marks problems as solved if their titleSlug OR lcAlt.slug is in the solved set.
+ * Safe to call multiple times — only marks previously incomplete problems.
+ * Returns the number of newly marked problems.
+ */
+export const rescanSheetProgress = () => {
+  const solvedSlugs = new Set(getSolvedSlugs());
+  if (solvedSlugs.size === 0) return 0;
+
+  const progress = getProgress();
+  let newlyMarked = 0;
+
+  for (const [sheetName, problems] of Object.entries(SHEET_DATA)) {
+    for (const p of problems) {
+      const slug     = p.titleSlug?.toLowerCase();
+      const altSlug  = p.lcAlt?.slug?.toLowerCase();
+      const isMatch  = solvedSlugs.has(slug) || (altSlug && solvedSlugs.has(altSlug));
+      if (!isMatch) continue;
+
+      const key = `${sheetName}:${slug}`;
+      if (!progress[key]?.completed) {
+        progress[key] = {
+          completed: true,
+          completionSource: 'auto-sync',
+          completedAt: new Date().toISOString(),
+          notes: progress[key]?.notes || '',
+        };
+        newlyMarked++;
+      }
+    }
+  }
+
+  if (newlyMarked > 0) saveProgress(progress);
+  return newlyMarked;
+};
+
+
 // ─── Warning helpers ─────────────────────────────────────────────────────────
 /**
  * Returns static warning objects readable from localStorage at render time.
- *  - { type: 'no_data' }  — no LeetCode import has ever been done
+ *  - { type: 'no_data' }       — no LeetCode import has ever been done
+ *  - { type: 'may_be_missing', gap, added, missingCount } — last sync had gap > 20
  */
 export const getWarnings = () => {
   const warnings = [];
@@ -47,6 +87,18 @@ export const getWarnings = () => {
   if (!lc || lc.totalSolved === 0) {
     warnings.push({ type: 'no_data' });
   }
+
+  // Persist mayBeMissing warning across sessions
+  const lastFetch = getLastRecentFetch();
+  if (lastFetch?.mayBeMissing) {
+    warnings.push({
+      type: 'may_be_missing',
+      gap: lastFetch.gap,
+      added: lastFetch.added,
+      missingCount: lastFetch.missingCount,
+    });
+  }
+
   return warnings;
 };
 
@@ -235,7 +287,10 @@ function mergeSolvedSlugs(newSlugs) {
   for (const [sheetName, problems] of Object.entries(SHEET_DATA)) {
     for (const p of problems) {
       const slug = p.titleSlug?.toLowerCase();
-      if (existingSlugs.has(slug)) {
+      // Also match via lcAlt slug for GFG problems that have a LC equivalent
+      const altSlug = p.lcAlt?.slug?.toLowerCase();
+      const isMatched = existingSlugs.has(slug) || (altSlug && existingSlugs.has(altSlug));
+      if (isMatched) {
         const key = `${sheetName}:${slug}`;
         if (!progress[key]?.completed) {
           progress[key] = {
@@ -482,6 +537,8 @@ export const syncApi = {
       throw new Error(`Sync error: ${err.message}`);
     }
   },
+  // ── LeetCode alias used by Sync.jsx ─────────────────────────────────────
+  syncLeetCode: async (username) => syncApi.fetchRecentLeetCode(username),
 };
 
 // ─── Settings API ────────────────────────────────────────────────────────────
@@ -672,7 +729,10 @@ const api = {
       for (const [sheetName, problems] of Object.entries(SHEET_DATA)) {
         for (const p of problems) {
           const slug = p.titleSlug?.toLowerCase();
-          if (uniqueSlugs.includes(slug)) {
+          // Also match via lcAlt slug for GFG problems that have a LC equivalent
+          const altSlug = p.lcAlt?.slug?.toLowerCase();
+          const isMatched = uniqueSlugs.includes(slug) || (altSlug && uniqueSlugs.includes(altSlug));
+          if (isMatched) {
             const key = `${sheetName}:${slug}`;
             if (!progress[key] || !progress[key].completed) {
               progress[key] = {
@@ -688,6 +748,12 @@ const api = {
       }
 
       saveProgress(progress);
+
+      // Full import fixes any mayBeMissing gap — clear that warning
+      const prevFetch = getLastRecentFetch();
+      if (prevFetch?.mayBeMissing) {
+        saveLastRecentFetch({ ...prevFetch, mayBeMissing: false, clearedBy: 'paste-import' });
+      }
 
       // Update LeetCode platform stats
       const lcStats = {

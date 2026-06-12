@@ -9,6 +9,24 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
+// ─── Platform badge ───────────────────────────────────────────────────────────
+function PlatformBadge({ platform }) {
+  const isLC = platform === 'leetcode';
+  return (
+    <span
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
+      style={{
+        background: isLC ? 'rgba(255,161,22,0.12)' : 'rgba(34,197,94,0.12)',
+        color: isLC ? '#f5a623' : '#22c55e',
+        border: `1px solid ${isLC ? 'rgba(245,166,35,0.3)' : 'rgba(34,197,94,0.3)'}`,
+        letterSpacing: '0.03em',
+      }}
+    >
+      {isLC ? 'LC' : 'GFG'}
+    </span>
+  );
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SHEET_LABELS = {
@@ -131,7 +149,10 @@ function ProblemRow({ problem, index, sheetName, onToggle, onNotesSaved }) {
 
         {/* Title */}
         <td className="py-3.5 px-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Platform badge */}
+            {problem.platform && <PlatformBadge platform={problem.platform} />}
+
             {problem.url ? (
               <a
                 href={problem.url}
@@ -158,6 +179,25 @@ function ProblemRow({ problem, index, sheetName, onToggle, onNotesSaved }) {
               >
                 {problem.title}
               </span>
+            )}
+
+            {/* LC alternative link for GFG problems */}
+            {problem.platform === 'gfg' && problem.lcAlt && (
+              <a
+                href={problem.lcAlt.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`LC Alt: ${problem.lcAlt.title} (#${problem.lcAlt.num})`}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 hover:opacity-80 transition-opacity"
+                style={{
+                  background: 'rgba(255,161,22,0.1)',
+                  color: '#f5a623',
+                  border: '1px solid rgba(245,166,35,0.25)',
+                }}
+              >
+                <ExternalLink size={9} />
+                LC #{problem.lcAlt.num}
+              </a>
             )}
           </div>
         </td>
@@ -299,6 +339,7 @@ export default function SheetDetail() {
   const [difficulty, setDiff]     = useState('All');
   const [status, setStatus]       = useState('All');
   const [topic, setTopic]         = useState('All');
+  const [platform, setPlatform]   = useState('All');
   const [topicOpen, setTopicOpen] = useState(false);
   const [page, setPage]           = useState(1);
 
@@ -308,6 +349,7 @@ export default function SheetDetail() {
     setDiff('All');
     setStatus('All');
     setTopic('All');
+    setPlatform('All');
     setPage(1);
     setLocalProblems(null);
   }, [name]);
@@ -341,16 +383,18 @@ export default function SheetDetail() {
       if (status === 'Completed' && !p.completed) return false;
       if (status === 'Remaining' && p.completed) return false;
       if (topic !== 'All' && p.topic !== topic) return false;
+      if (platform === 'LC' && p.platform !== 'leetcode') return false;
+      if (platform === 'GFG' && p.platform !== 'gfg') return false;
       return true;
     });
-  }, [problems, search, difficulty, status, topic]);
+  }, [problems, search, difficulty, status, topic, platform]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
   const pageItems  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [search, difficulty, status, topic]);
+  useEffect(() => { setPage(1); }, [search, difficulty, status, topic, platform]);
 
   const sheetLabel = SHEET_LABELS[name] || name;
   const pct        = currentSheet?.percentage ?? 0;
@@ -565,6 +609,28 @@ export default function SheetDetail() {
             ))}
           </div>
 
+          {/* Platform filter */}
+          <div className="flex gap-1">
+            {['All', 'LC', 'GFG'].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPlatform(p)}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150"
+                style={
+                  platform === p
+                    ? {
+                        background: p === 'LC' ? 'rgba(245,166,35,0.15)' : p === 'GFG' ? 'rgba(34,197,94,0.15)' : 'rgba(139,92,246,0.15)',
+                        color: p === 'LC' ? '#f5a623' : p === 'GFG' ? '#22c55e' : '#8b5cf6',
+                        border: `1px solid ${p === 'LC' ? 'rgba(245,166,35,0.35)' : p === 'GFG' ? 'rgba(34,197,94,0.35)' : 'rgba(139,92,246,0.35)'}`,
+                      }
+                    : { background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                }
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
           {/* Topic dropdown */}
           <div className="relative">
             <button
@@ -637,7 +703,7 @@ export default function SheetDetail() {
               </p>
             </div>
             <button
-              onClick={() => { setSearch(''); setDiff('All'); setStatus('All'); setTopic('All'); }}
+              onClick={() => { setSearch(''); setDiff('All'); setStatus('All'); setTopic('All'); setPlatform('All'); }}
               className="text-sm px-4 py-2 rounded-xl"
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
             >
